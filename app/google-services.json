@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "648217264749",
+    "project_id": "stikky-f3467",
+    "storage_bucket": "stikky-f3467.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:648217264749:android:11e706811118eebfe83564",
+        "android_client_info": {
+          "package_name": "com.example.notes"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBd_kc-ELtUWZ4fXZs4c1kDsSj4xeS-m_0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

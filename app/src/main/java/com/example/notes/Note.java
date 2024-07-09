@@ -1,11 +1,23 @@
 package com.example.notes;
 
-// Note.java
 public class Note {
     private long id;
     private String heading;
     private String details;
+    private long timestamp; // Timestamp for the date
 
+    public Note() {
+        // Default constructor
+    }
+
+    public Note(long id, String heading, String details, long timestamp) {
+        this.id = id;
+        this.heading = heading;
+        this.details = details;
+        this.timestamp = timestamp;
+    }
+
+    // Getters and setters
     public long getId() {
         return id;
     }
@@ -28,5 +40,13 @@ public class Note {
 
     public void setDetails(String details) {
         this.details = details;
+    }
+
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
     }
 }

@@ -1,9 +1,8 @@
 package com.example.notes;
-// DatabaseHelper.java
+
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import java.util.ArrayList;
@@ -12,18 +11,12 @@ import java.util.List;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "notes.db";
-    private static final int DATABASE_VERSION = 1;
-
-    public static final String TABLE_NOTES = "notes";
-    public static final String COLUMN_ID = "_id";
-    public static final String COLUMN_HEADING = "heading";
-    public static final String COLUMN_DETAILS = "details";
-
-    private static final String TABLE_CREATE =
-            "CREATE TABLE " + TABLE_NOTES + " (" +
-                    COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    COLUMN_HEADING + " TEXT, " +
-                    COLUMN_DETAILS + " TEXT);";
+    private static final int DATABASE_VERSION = 4; // Increment this number
+    private static final String TABLE_NOTES = "notes";
+    private static final String COLUMN_ID = "id";
+    private static final String COLUMN_HEADING = "heading";
+    private static final String COLUMN_DETAILS = "details";
+    private static final String COLUMN_TIMESTAMP = "timestamp";
 
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -31,7 +24,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL(TABLE_CREATE);
+        String CREATE_NOTES_TABLE = "CREATE TABLE " + TABLE_NOTES + "("
+                + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + COLUMN_HEADING + " TEXT,"
+                + COLUMN_DETAILS + " TEXT,"
+                + COLUMN_TIMESTAMP + " INTEGER" + ")";
+        db.execSQL(CREATE_NOTES_TABLE);
     }
 
     @Override
@@ -39,134 +37,71 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_NOTES);
         onCreate(db);
     }
-    public void deleteNoteById(long noteId) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        try {
-            int deletedRows = db.delete(TABLE_NOTES, COLUMN_ID + " = ?",
-                    new String[]{String.valueOf(noteId)});
-            if (deletedRows > 0) {
-                // Note deleted successfully
-            } else {
-                // Handle deletion failure
-            }
-        } catch (SQLException e) {
-            // Handle the exception
-        } finally {
-            db.close();
-        }
+
+    @Override
+    public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        super.onDowngrade(db, oldVersion, newVersion);
+        // Implement your downgrade logic here if necessary
     }
+
     public long insertNote(String heading, String details) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_HEADING, heading);
         values.put(COLUMN_DETAILS, details);
-
-        long newRowId = -1;
-
-        try {
-            newRowId = db.insert(TABLE_NOTES, null, values);
-        } catch (SQLException e) {
-            // Handle the exception
-        } finally {
-            db.close();
-        }
-
-        return newRowId;
+        values.put(COLUMN_TIMESTAMP, System.currentTimeMillis());
+        return db.insert(TABLE_NOTES, null, values);
     }
 
-    public boolean updateNote(long noteId, String heading, String details) {
+    public boolean updateNote(long id, String heading, String details) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_HEADING, heading);
         values.put(COLUMN_DETAILS, details);
+        values.put(COLUMN_TIMESTAMP, System.currentTimeMillis());
+        int rowsUpdated = db.update(TABLE_NOTES, values, COLUMN_ID + " = ?", new String[]{String.valueOf(id)});
+        return rowsUpdated > 0;
+    }
 
-        int rowsAffected = -1;
+    public void deleteNoteById(long id) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.delete(TABLE_NOTES, COLUMN_ID + " = ?", new String[]{String.valueOf(id)});
+    }
 
-        try {
-            rowsAffected = db.update(TABLE_NOTES, values, COLUMN_ID + " = ?",
-                    new String[]{String.valueOf(noteId)});
-        } catch (SQLException e) {
-            // Handle the exception
-        } finally {
-            db.close();
+    public Note getNoteById(long id) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.query(TABLE_NOTES, new String[]{COLUMN_ID, COLUMN_HEADING, COLUMN_DETAILS, COLUMN_TIMESTAMP},
+                COLUMN_ID + " = ?", new String[]{String.valueOf(id)}, null, null, null, null);
+        if (cursor != null && cursor.moveToFirst()) {
+            Note note = new Note(
+                    cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_ID)),
+                    cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HEADING)),
+                    cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_DETAILS)),
+                    cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_TIMESTAMP))
+            );
+            cursor.close();
+            return note;
         }
-
-        return rowsAffected > 0;
+        return null;
     }
 
     public List<Note> getAllNotes() {
         List<Note> notes = new ArrayList<>();
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        try {
-            Cursor cursor = db.query(
-                    TABLE_NOTES,
-                    new String[]{COLUMN_ID, COLUMN_HEADING, COLUMN_DETAILS},
-                    null,
-                    null,
-                    null,
-                    null,
-                    null
-            );
-
-            if (cursor != null && cursor.moveToFirst()) {
-                do {
-                    long id = cursor.getLong(cursor.getColumnIndex(COLUMN_ID));
-                    String heading = cursor.getString(cursor.getColumnIndex(COLUMN_HEADING));
-                    String details = cursor.getString(cursor.getColumnIndex(COLUMN_DETAILS));
-
-                    Note note = new Note();
-                    note.setId(id);
-                    note.setHeading(heading);
-                    note.setDetails(details);
-
-                    notes.add(note);
-                } while (cursor.moveToNext());
-
-                cursor.close();
-            }
-        } catch (SQLException e) {
-            // Handle the exception
-        } finally {
-            db.close();
+        String selectQuery = "SELECT * FROM " + TABLE_NOTES;
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cursor = db.rawQuery(selectQuery, null);
+        if (cursor.moveToFirst()) {
+            do {
+                Note note = new Note(
+                        cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_ID)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HEADING)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_DETAILS)),
+                        cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_TIMESTAMP))
+                );
+                notes.add(note);
+            } while (cursor.moveToNext());
         }
-
+        cursor.close();
         return notes;
-    }
-
-    public Note getNoteById(long noteId) {
-        SQLiteDatabase db = this.getReadableDatabase();
-        Note note = null;
-
-        try {
-            Cursor cursor = db.query(
-                    TABLE_NOTES,
-                    new String[]{COLUMN_ID, COLUMN_HEADING, COLUMN_DETAILS},
-                    COLUMN_ID + " = ?",
-                    new String[]{String.valueOf(noteId)},
-                    null,
-                    null,
-                    null
-            );
-
-            if (cursor != null && cursor.moveToFirst()) {
-                long id = cursor.getLong(cursor.getColumnIndex(COLUMN_ID));
-                String heading = cursor.getString(cursor.getColumnIndex(COLUMN_HEADING));
-                String details = cursor.getString(cursor.getColumnIndex(COLUMN_DETAILS));
-
-                note = new Note();
-                note.setId(id);
-                note.setHeading(heading);
-                note.setDetails(details);
-
-                cursor.close();
-            }
-        } catch (SQLException e) {
-            // Handle the exception
-        } finally {
-            db.close();
-        }
-
-        return note;
     }
 }

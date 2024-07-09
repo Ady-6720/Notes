@@ -1,6 +1,5 @@
 package com.example.notes;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.view.LayoutInflater;
@@ -9,11 +8,11 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-
+import androidx.appcompat.app.AlertDialog; // Add this import
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class NoteAdapter extends ArrayAdapter<Note> {
 
@@ -28,19 +27,23 @@ public class NoteAdapter extends ArrayAdapter<Note> {
         this.onNoteClickListener = onNoteClickListener;
     }
 
-    @NonNull
     @Override
-    public View getView(final int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+    public View getView(final int position, View convertView, ViewGroup parent) {
         final Note note = getItem(position);
 
         if (convertView == null) {
-            convertView = LayoutInflater.from(getContext()).inflate(android.R.layout.simple_list_item_1, parent, false);
+            convertView = LayoutInflater.from(getContext()).inflate(R.layout.list_item, parent, false);
         }
 
-        TextView textView = convertView.findViewById(android.R.id.text1);
+        TextView textView = convertView.findViewById(R.id.noteText);
+        TextView dateView = convertView.findViewById(R.id.noteDate);
         textView.setText(note.getHeading());
 
-        // Set click listener for editing a note
+        // Format the timestamp into a readable date
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
+        String formattedDate = sdf.format(new Date(note.getTimestamp()));
+        dateView.setText(formattedDate);
+
         convertView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -50,7 +53,6 @@ public class NoteAdapter extends ArrayAdapter<Note> {
             }
         });
 
-        // Set long click listener for deleting a note
         convertView.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View view) {
@@ -93,7 +95,6 @@ public class NoteAdapter extends ArrayAdapter<Note> {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
     }
 
-    // Interface for handling note clicks
     public interface OnNoteClickListener {
         void onNoteClick(Note note);
     }
